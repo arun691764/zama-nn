@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Zama Demo Testnet — FINAL Version</title>
+
+<style>
+:root {
+  --accent:#ffd400;
+  --muted:#9aa6b2;
+}
+*{box-sizing:border-box;font-family:Inter,Arial;margin:0;padding:0;color:#e6eef6}
+body{background:linear-gradient(180deg,#00111a,#041827);min-height:100vh}
+
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 20px;
+  background:rgba(255,255,255,0.05);
+  border-bottom:1px solid rgba(255,255,255,0.1)
+}
+.logo{width:56px;height:56px;border-radius:10px;object-fit:cover;border:2px solid rgba(255,255,255,0.2)}
+.small{color:var(--muted);font-size:13px}
+
+.container{max-width:1100px;margin:22px auto;display:flex;gap:18px;padding:10px}
+.left{flex:1;display:flex;flex-direction:column;gap:14px}
+.right{width:380px;display:flex;flex-direction:column;gap:14px}
+
+.card{
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.1);
+  padding:16px;border-radius:14px
+}
+.btn{
+  background:var(--accent);color:#061320;
+  padding:8px 12px;border:none;border-radius:8px;font-weight:700;cursor:pointer
+}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.3);color:var(--muted)}
+.area{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:white}
+.logbox{background:#020617;padding:10px;border-radius:8px;color:#bfe7ff;overflow:auto;height:220px;white-space:pre-wrap}
+
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,0.7);
+  display:flex;align-items:center;justify-content:center;z-index:200
+}
+.modal{
+  background:#071b2d;padding:26px;border-radius:18px;
+  max-width:720px;display:flex;gap:20px;align-items:center;
+  border:2px solid rgba(255,255,255,0.1)
+}
+.modal img{width:120px;height:120px;border-radius:14px;border:3px solid rgba(255,255,255,0.1)}
+
+@media(max-width:900px){
+  .container{flex-direction:column}
+  .right{width:100%}
+  .modal{flex-direction:column;text-align:center}
+}
+</style>
+</head>
+
+<body>
+
+<!-- WELCOME SCREEN -->
+<div id="welcome" class="modal-backdrop">
+  <div class="modal">
+    <img src="logo.png" />
+    <div>
+      <h2 style="margin-bottom:6px;">Welcome to Zama Demo Testnet</h2>
+      <div class="small" style="margin-bottom:10px;">
+        Experience wallet connect, faucet, swap & logs — fully simulated.
+      </div>
+
+      <button id="startBtn" class="btn">Start Demo</button>
+      <button id="skipBtn" class="btn ghost" style="margin-left:10px;">Skip</button>
+
+      <div class="small" style="margin-top:12px;">
+        Project: <a href="https://docs.zama.org/protocol" target="_blank" style="color:#ffd400">Zama Protocol</a> • Created by @AmitKum955
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div style="display:flex;gap:12px;align-items:center">
+    <img src="logo.png" class="logo"/>
+    <div>
+      <b>Zama Demo Testnet</b><br>
+      <span class="small">No real blockchain — fully simulated</span>
+    </div>
+  </div>
+  <button id="connectBtn" class="btn">Connect Wallet</button>
+</header>
+
+<main class="container">
+
+  <!-- LEFT SIDE -->
+  <section class="left">
+
+    <!-- WALLET + FAUCET -->
+    <div class="card">
+      <h3>Wallet & Faucet</h3>
+
+      <p class="small" style="margin-top:6px;">Address:</p>
+      <div id="walletAddr">Not connected</div>
+
+      <p class="small" style="margin-top:6px;">Balances:</p>
+      <div id="balances">tZAMA: 0 • tUSDC: 0</div>
+
+      <p class="small" style="margin-top:10px;">Name/Email (required for faucet):</p>
+      <input id="claimId" class="area" placeholder="your email or name">
+
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button id="faucetZ" class="btn">Claim 100 tZAMA</button>
+        <button id="faucetU" class="btn ghost">Claim 100 tUSDC</button>
+      </div>
+    </div>
+
+    <!-- SWAP SYSTEM -->
+    <div class="card">
+      <h3>Swap</h3>
+
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <select id="fromToken" class="area" style="width:120px;">
+          <option value="ZAMA">tZAMA</option>
+          <option value="USDC">tUSDC</option>
+        </select>
+
+        <select id="toToken" class="area" style="width:120px;">
+          <option value="USDC">tUSDC</option>
+          <option value="ZAMA">tZAMA</option>
+        </select>
+
+        <input id="amount" type="number" class="area" placeholder="Amount" style="width:120px;">
+        <button id="swapBtn" class="btn">Swap</button>
+      </div>
+
+      <p class="small" style="margin-top:8px;">Swaps done: <span id="swapCount">0</span></p>
+
+      <label class="small" style="margin-top:8px;">
+        <input type="checkbox" id="shareApr"> Share APR on X after swap
+      </label>
+    </div>
+
+  </section>
+
+  <!-- RIGHT SIDE -->
+  <aside class="right">
+
+    <div class="card">
+      <h3>MPC Nodes</h3>
+      <div id="nodes" class="small">Loading...</div>
+      <button id="refreshNodes" class="btn ghost" style="margin-top:10px;">Refresh</button>
+    </div>
+
+    <div class="card">
+      <h3>Transactions / Logs</h3>
+      <div id="lastTx" class="small">Last TX: -</div>
+      <div id="logs" class="logbox">No logs yet</div>
+      <button id="clearBtn" class="btn ghost" style="margin-top:10px;">Clear</button>
+    </div>
+
+    <div class="card center">
+      <div class="small">Block Height</div>
+      <div id="blockHeight" style="font-size:20px;font-weight:700">120000</div>
+    </div>
+
+  </aside>
+</main>
+
+<script>
+/* ---------------------------
+   SIMPLE JS ENGINE
+---------------------------*/
+
+const walletAddrEl = document.getElementById("walletAddr");
+const balancesEl = document.getElementById("balances");
+
+const faucetZ = document.getElementById("faucetZ");
+const faucetU = document.getElementById("faucetU");
+
+const fromToken = document.getElementById("fromToken");
+const toToken   = document.getElementById("toToken");
+
+const amountInput = document.getElementById("amount");
+const swapBtn = document.getElementById("swapBtn");
+
+const logsEl = document.getElementById("logs");
+const lastTx = document.getElementById("lastTx");
+const swapCountEl = document.getElement
