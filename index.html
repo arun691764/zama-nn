@@ -1,195 +1,133 @@
 <script>
-/* ---------------------------
-   FULL FIXED TESTNET ENGINE
----------------------------*/
-
 let wallet = null;
-let balances = { ZAMA: 0, USDC: 0 };
+let balances = { ZAMA:0, USDC:0 };
 let logs = [];
 let blockHeight = 120000;
 let rate = 1.2;
 
-// Elements
+const welcome = document.getElementById("welcome");
+const startBtn = document.getElementById("startBtn");
+const skipBtn  = document.getElementById("skipBtn");
+const connectBtn = document.getElementById("connectBtn");
+
 const walletAddrEl = document.getElementById("walletAddr");
 const balancesEl   = document.getElementById("balances");
 
 const faucetZ = document.getElementById("faucetZ");
 const faucetU = document.getElementById("faucetU");
+const claimIdInput = document.getElementById("claimId");
 
 const fromToken = document.getElementById("fromToken");
 const toToken   = document.getElementById("toToken");
+const amountInput = document.getElementById("amount");
+const swapBtn = document.getElementById("swapBtn");
+const swapCountEl = document.getElementById("swapCount");
+const shareApr = document.getElementById("shareApr");
 
-const amountInput   = document.getElementById("amount");
-const swapBtn       = document.getElementById("swapBtn");
-const swapCountEl   = document.getElementById("swapCount");
-const shareAprCheck = document.getElementById("shareApr");
-
-const logsEl  = document.getElementById("logs");
-const lastTx  = document.getElementById("lastTx");
+const logsEl = document.getElementById("logs");
+const lastTx = document.getElementById("lastTx");
 const clearBtn = document.getElementById("clearBtn");
 
 const nodesEl = document.getElementById("nodes");
 const refreshNodes = document.getElementById("refreshNodes");
-
 const blockHeightEl = document.getElementById("blockHeight");
 
-const startBtn = document.getElementById("startBtn");
-const skipBtn  = document.getElementById("skipBtn");
-const welcome  = document.getElementById("welcome");
+/* --- WELCOME SCREEN FIX --- */
+startBtn.onclick = () => {
+  welcome.style.display = "none";
+};
+skipBtn.onclick = () => {
+  welcome.style.display = "none";
+};
 
-const claimIdInput = document.getElementById("claimId");
+/* --- WALLET CONNECT --- */
+connectBtn.onclick = () => {
+  if (!wallet) {
+    wallet = "0x" + Math.random().toString(16).substr(2,10);
+    walletAddrEl.textContent = wallet;
+    connectBtn.textContent = "Disconnect";
+  } else {
+    wallet = null;
+    walletAddrEl.textContent = "Not connected";
+    connectBtn.textContent = "Connect Wallet";
+  }
+};
 
-
-// ------------------------
-// LOG SYSTEM
-// ------------------------
-function pushLog(obj){
-    obj.time = new Date().toLocaleTimeString();
-    logs.unshift(obj);
-    logsEl.textContent = logs.map(l => JSON.stringify(l,null,2)).join("\n\n");
+/* --- PUSH LOG --- */
+function log(event) {
+  logs.unshift(event);
+  logsEl.textContent = logs.map(l => JSON.stringify(l, null, 2)).join("\n\n");
 }
 
+/* --- FAUCET --- */
+faucetZ.onclick = () => {
+  if (!wallet && !claimIdInput.value) return alert("Connect wallet or enter name/email!");
 
-// ------------------------
-// CONNECT WALLET
-// ------------------------
-document.getElementById("connectBtn").addEventListener("click", ()=> {
-    if(!wallet){
-        wallet = "0x" + Math.random().toString(16).substr(2,10);
-        walletAddrEl.textContent = wallet;
-        pushLog({ event:"wallet_connected", wallet });
-    } else {
-        wallet = null;
-        walletAddrEl.textContent = "Not connected";
-        pushLog({ event:"wallet_disconnected" });
-    }
-});
+  balances.ZAMA += 100;
+  balancesEl.textContent = `tZAMA: ${balances.ZAMA} • tUSDC: ${balances.USDC}`;
+  log({event:"faucet", token:"tZAMA", amount:100});
+};
 
+faucetU.onclick = () => {
+  if (!wallet && !claimIdInput.value) return alert("Connect wallet or enter name/email!");
 
-// ------------------------
-// FAUCET
-// ------------------------
-function giveTokens(token){
-    if(!wallet){
-        alert("Connect wallet first");
-        return;
-    }
+  balances.USDC += 100;
+  balancesEl.textContent = `tZAMA: ${balances.ZAMA} • tUSDC: ${balances.USDC}`;
+  log({event:"faucet", token:"tUSDC", amount:100});
+};
 
-    balances[token] += 100;
+/* --- SWAP SYSTEM --- */
+swapBtn.onclick = () => {
+  if (!wallet) return alert("Connect wallet first!");
 
-    balancesEl.textContent = `tZAMA: ${balances.ZAMA} • tUSDC: ${balances.USDC}`;
+  const from = fromToken.value;
+  const to = toToken.value;
+  const amount = Number(amountInput.value);
 
-    pushLog({event:"faucet_claim", token, amount:100});
-}
+  if (from === to) return alert("Cannot swap same token!");
+  if (!amount) return alert("Enter amount!");
 
-faucetZ.onclick = ()=> giveTokens("ZAMA");
-faucetU.onclick = ()=> giveTokens("USDC");
+  if (balances[from] < amount) return alert("Insufficient balance!");
 
+  let received = from === "ZAMA" ? amount * rate : amount / rate;
 
-// ------------------------
-// SWAP SYSTEM
-// ------------------------
-let swapCount = 0;
+  balances[from] -= amount;
+  balances[to] += received;
 
-swapBtn.addEventListener("click", ()=> {
-    if(!wallet){
-        alert("Connect wallet first");
-        return;
-    }
+  swapCountEl.textContent = Number(swapCountEl.textContent) + 1;
 
-    const from = fromToken.value;
-    const to   = toToken.value;
-    const amount = parseFloat(amountInput.value);
+  balancesEl.textContent = `tZAMA: ${balances.ZAMA} • tUSDC: ${balances.USDC}`;
+  log({event:"swap", from, to, amount, received});
 
-    if(from === to){
-        alert("Select different tokens");
-        return;
-    }
-    if(!amount || amount <= 0){
-        alert("Enter valid amount");
-        return;
-    }
-    if(balances[from] < amount){
-        alert("Not enough balance");
-        return;
-    }
+  if (shareApr.checked) {
+    const tweet = encodeURIComponent(`I used Zama Demo Testnet! Swapped ${amount} ${from} → ${received} ${to}. @AmitKum955 🚀`);
+    window.open("https://twitter.com/intent/tweet?text=" + tweet, "_blank");
+  }
 
-    const fee = 0.005;
-    let received;
+  alert(`Swapped ${amount} ${from} → ${received} ${to}`);
+};
 
-    if(from === "ZAMA"){
-        received = amount * rate * (1 - fee);
-    } else {
-        received = (amount / rate) * (1 - fee);
-    }
+/* --- CLEAR LOGS --- */
+clearBtn.onclick = () => {
+  logs = [];
+  logsEl.textContent = "No logs yet";
+};
 
-    received = Number(received.toFixed(4));
-
-    balances[from] -= amount;
-    balances[to]   += received;
-
-    balancesEl.textContent = `tZAMA: ${balances.ZAMA} • tUSDC: ${balances.USDC}`;
-
-    const tx = "0x" + Math.random().toString(16).substr(2,10);
-
-    pushLog({event:"swap", from, to, amount, received, tx});
-    lastTx.textContent = "Last TX: " + tx;
-
-    swapCount++;
-    swapCountEl.textContent = swapCount;
-
-    if(shareAprCheck.checked){
-        const msg = encodeURIComponent(
-            `Tried Zama Demo Testnet! Swapped ${amount} ${from} → ${received} ${to}. APR 12.5%. Learn more: https://docs.zama.org/protocol • @AmitKum955`
-        );
-        window.open(`https://twitter.com/intent/tweet?text=${msg}`,"_blank");
-    }
-
-    alert(`Swap Successful! TX: ${tx}`);
-});
-
-
-// ------------------------
-// MPC NODES
-// ------------------------
-function loadNodes(){
-    let html = "";
-    for(let i=1;i<=5;i++){
-        const online = Math.random() > 0.2;
-        html += `Node ${i}: <b style="color:${online?'#00ff88':'#ff4444'}">${online?"ONLINE":"OFFLINE"}</b><br>`;
-    }
-    nodesEl.innerHTML = html;
+/* --- NODES --- */
+function loadNodes() {
+  let html = "";
+  for (let i = 1; i <= 5; i++) {
+    const online = Math.random() > 0.2;
+    html += `Node ${i}: <b style="color:${online ? "#4ade80" : "#f87171"}">${online ? "ONLINE" : "OFFLINE"}</b><br>`;
+  }
+  nodesEl.innerHTML = html;
 }
 refreshNodes.onclick = loadNodes;
-
-
-// ------------------------
-// BLOCK HEIGHT SIMULATION
-// ------------------------
-setInterval(()=> {
-    blockHeight += Math.floor(Math.random()*3);
-    blockHeightEl.textContent = blockHeight;
-},1500);
-
-
-// ------------------------
-// CLEAR LOGS
-// ------------------------
-clearBtn.onclick = ()=> {
-    logs = [];
-    logsEl.textContent = "No logs yet";
-};
-
-
-// ------------------------
-// WELCOME SCREEN FIX
-// ------------------------
-startBtn.onclick = ()=> {
-    welcome.style.display = "none";
-};
-skipBtn.onclick = ()=> {
-    welcome.style.display = "none";
-};
-
 loadNodes();
+
+/* --- BLOCK HEIGHT --- */
+setInterval(() => {
+  blockHeight += 1 + Math.floor(Math.random()*2);
+  blockHeightEl.textContent = blockHeight;
+}, 1500);
 </script>
